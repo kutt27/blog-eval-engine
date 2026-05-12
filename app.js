@@ -7,11 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Editor Input
     blogEditor.addEventListener('input', () => {
         const text = blogEditor.value.trim();
-        
+
         // Update word count
         const count = text ? text.split(/\s+/).length : 0;
         wordCount.textContent = `${count} words`;
-        
+
         // Enable/Disable evaluate button
         btnEvaluate.disabled = count < 10; // Require at least 10 words
     });
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Chips Selection
     document.querySelectorAll('.chip-group').forEach(group => {
         const isMulti = group.dataset.multi === 'true';
-        
+
         group.addEventListener('click', (e) => {
             if (e.target.classList.contains('chip')) {
                 if (!isMulti) {
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Evaluation Trigger
-    btnEvaluate.addEventListener('click', () => {
+    btnEvaluate.addEventListener('click', async () => {
         // Collect choices
         const config = {
             content: blogEditor.value,
@@ -42,18 +42,31 @@ document.addEventListener('DOMContentLoaded', () => {
             purpose: document.getElementById('purpose').value,
             platform: document.getElementById('platform').value,
             depth: document.querySelector('[data-group="depth"] .selected').dataset.value,
-            custom: document.getElementById('custom-focus').value
+            custom: document.getElementById('custom-focus').value,
+            prompt_injection: null
         };
 
         console.log('Running evaluation with config:', config);
-        
-        // Show loading state
+
         loadingOverlay.style.display = 'flex';
 
-        // Simulate API call to the sync engine
-        setTimeout(() => {
+        try {
+            const res = await fetch('/evaluate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            if (!res.ok) {
+                throw new Error(`Server returned ${res.status}`);
+            }
+            const data = await res.json();
+            console.log('Evaluation response:', data);
+            alert('Evaluation complete. Check console for response.');
+        } catch (err) {
+            console.error('Evaluation failed:', err);
+            alert(`Evaluation failed: ${err.message}`);
+        } finally {
             loadingOverlay.style.display = 'none';
-            alert('Evaluation complete! (Simulation mode). Check console for config details.');
-        }, 3000);
+        }
     });
 });
