@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Evaluator | Premium Content Audit</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Marked.js for MD rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Blog Evaluator</h1>
+            <p style="padding-bottom: 15px;">Refine your narrative with semantic evaluation.</p>
+            <hr/>
+        </header>
+
+        <main class="app-layout">
+            <!-- Sidebar: Configuration -->
+            <section class="panel sidebar">
+                <div class="editor-header">
+                    <h3 class="serif">Evaluation Config</h3>
+                </div>
+
+                <div class="form-group">
+                    <label>Target Audience</label>
+                    <div class="chip-group" data-group="audience" data-multi="true">
+                        <button class="chip" data-value="Beginner">Beginner</button>
+                        <button class="chip" data-value="Mid-level">Mid-level</button>
+                        <button class="chip" data-value="Senior">Senior</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Writing Style</label>
+                    <div class="chip-group" data-group="style" data-multi="true">
+                        <button class="chip" data-value="Technical">Technical</button>
+                        <button class="chip" data-value="Narrative">Narrative</button>
+                        <button class="chip" data-value="Tutorial">Tutorial</button>
+                        <button class="chip" data-value="Review">Review</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Primary Purpose</label>
+                    <select id="purpose" class="input-field">
+                        <option value="Educate">Educate</option>
+                        <option value="Persuade">Persuade</option>
+                        <option value="Build Authority">Build Authority</option>
+                        <option value="Convert">Convert</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Platform Destination</label>
+                    <select id="platform" class="input-field">
+                        <option value="Personal Blog">Personal Blog</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Dev.to">Dev.to</option>
+                        <option value="LinkedIn">LinkedIn</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Feedback Depth</label>
+                    <div class="chip-group" data-group="depth" data-multi="false">
+                        <button class="chip" data-value="Quick">Quick</button>
+                        <button class="chip selected" data-value="Standard">Standard</button>
+                        <button class="chip" data-value="Deep Audit">Deep Audit</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Custom Focus</label>
+                    <textarea id="custom-focus" class="input-field" rows="3" placeholder="e.g. Focus on code accuracy..."></textarea>
+                </div>
+
+                <button id="btn-evaluate" class="btn-evaluate" disabled>Run Evaluation</button>
+            </section>
+
+            <!-- Main: Blog Editor -->
+            <section class="editor-section">
+                <!-- <div class="editor-header">
+                    <h2 class="serif">Draft Your Content</h2>
+                    <span id="word-count" style="font-size: 0.9rem; color: #888;">0 words</span>
+                </div> -->
+                <!-- Closed for aesthetic purpose -->
+                <div class="editor-container">
+                    <textarea id="blog-editor" class="blog-editor" placeholder="Paste your markdown content here..."></textarea>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(244, 241, 232, 0.95); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+        <div style="width: 60px; height: 60px; border: 4px solid #ddd; border-top: 4px solid #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <h2 class="serif" style="margin-top: 2rem;">Evaluating your content...</h2>
+        <p style="margin-top: 0.5rem; font-style: italic; color: #666;">Consulting Semantic RAG & LLM Engine</p>
+    </div>
+
+    <style>
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+
+    <script src="app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
