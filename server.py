@@ -4,19 +4,31 @@ Exposes a single POST /evaluate endpoint that accepts the frontend's
 evaluation config as JSON plus an optional `prompt_injection` string for
 augmenting the LLM prompt during evaluation.
 
-LLM + semantic-RAG wiring is intentionally stubbed for now; this layer
-defines and validates the request contract.
+Retrieval runs against the local rubric corpus via ``rag.py``; the LLM
+call is delegated to ``llm.py`` (Groq). If either dependency is missing or
+``GROQ_API_KEY`` is unset the route returns a hardcoded mock so the
+frontend remains functional.
 """
 
 from __future__ import annotations
 
+import logging
+import os
 from pathlib import Path
 from typing import List, Literal, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+log = logging.getLogger("blog-evaluator")
 
 
 # ---------- Request / response models ----------
@@ -28,6 +40,7 @@ class EvaluationRequest(BaseModel):
     audience: List[str] = Field(default_factory=list)
     style: List[str] = Field(default_factory=list)
     purpose: str = ""
+    blog_type: str = ""
     platform: str = ""
     depth: Literal["Quick", "Standard", "Deep Audit"] = "Standard"
     custom: str = ""
@@ -37,11 +50,38 @@ class EvaluationRequest(BaseModel):
     prompt_injection: Optional[str] = None
 
 
-class EvaluationResponse(BaseModel):
-    status: str
-    received: EvaluationRequest
-    word_count: int
-    prompt_preview: str
+# Structured evaluation result. This is the contract the LLM must satisfy
+# once it replaces the mock implementation in /evaluate.
+
+class ScoreDimension(BaseModel):
+    name: str
+    score: int = Field(..., ge=0, le=100)
+    rationale: str
+
+
+class ImprovementItem(BaseModel):
+    priority: Literal["high", "medium", "low"]
+    title: str
+    description: str
+
+
+class LineEdit(BaseModel):
+    before: str
+    after: str
+    rationale: str
+
+
+class EvaluationResult(BaseModel):
+    overall_score: int = Field(..., ge=0, le=100)
+    summary: str
+    score_breakdown: List[ScoreDimension] = Field(default_factory=list)
+    strengths: List[str] = Field(default_factory=list)
+    improvement_priorities: List[ImprovementItem] = Field(default_factory=list)
+    line_edits: List[LineEdit] = Field(default_factory=list)
+    comparative_analysis: List[str] = Field(default_factory=list)
+    word_count: int = 0
+    # Indicates whether the response came from the live LLM or the mock.
+    mode: Literal["live", "mock"] = "live"
 
 
 # ---------- App setup ----------
@@ -58,23 +98,116 @@ app.add_middleware(
 
 # ---------- Prompt assembly (stub) ----------
 
-def build_prompt(req: EvaluationRequest) -> str:
-    """Assemble the evaluation prompt. Real RAG retrieval lands later."""
-    parts = [
-        "You are evaluating a blog post.",
-        f"Target audience: {', '.join(req.audience) or 'unspecified'}",
-        f"Writing style: {', '.join(req.style) or 'unspecified'}",
-        f"Primary purpose: {req.purpose or 'unspecified'}",
-        f"Platform: {req.platform or 'unspecified'}",
-        f"Feedback depth: {req.depth}",
-    ]
+def _retrieve_context(req: EvaluationRequest, k: int = 6) -> List[dict]:
+    """Pull top-k rubric snippets via the local RAG store. Empty on failure."""
+    try:
+        import rag
+        query = rag.build_query(
+            audience=req.audience,
+            style=req.style,
+            purpose=req.purpose,
+            blog_type=req.blog_type,
+            platform=req.platform,
+            custom=req.custom,
+        )
+        return rag.retrieve(query, k=k)
+    except Exception as exc:  # missing deps, model download failure, etc.
+        log.warning("RAG retrieval unavailable: %s", exc)
+        return []
+
+
+def build_prompt(req: EvaluationRequest, snippets: List[dict]) -> str:
+    """Assemble the user-turn prompt: config + retrieved rubrics + content."""
+    lines: List[str] = ["## Evaluation configuration"]
+    lines.append(f"- Target audience: {', '.join(req.audience) or 'unspecified'}")
+    lines.append(f"- Writing style: {', '.join(req.style) or 'unspecified'}")
+    lines.append(f"- Primary purpose: {req.purpose or 'unspecified'}")
+    lines.append(f"- Blog type: {req.blog_type or 'unspecified'}")
+    lines.append(f"- Platform: {req.platform or 'unspecified'}")
+    lines.append(f"- Feedback depth: {req.depth}")
     if req.custom:
-        parts.append(f"Custom focus: {req.custom}")
+        lines.append(f"- Custom focus: {req.custom}")
     if req.prompt_injection:
-        parts.append(f"Additional instructions: {req.prompt_injection}")
-    parts.append("---")
-    parts.append(req.content)
-    return "\n".join(parts)
+        lines.append(f"- Additional instructions: {req.prompt_injection}")
+
+    if snippets:
+        lines.append("\n## Reference rubrics (retrieved)")
+        for s in snippets:
+            lines.append(f"\n### [{s['source']}]")
+            lines.append(s["text"])
+
+    lines.append("\n## Blog content")
+    lines.append(req.content)
+    return "\n".join(lines)
+
+
+# ---------- Mock evaluator ----------
+# Hardcoded result used until the real LLM call is wired in. Shape is
+# locked to EvaluationResult so the frontend can be validated end-to-end.
+
+def _mock_result(req: EvaluationRequest) -> EvaluationResult:
+    word_count = len(req.content.split())
+    return EvaluationResult(
+        overall_score=78,
+        summary=(
+            "Solid draft with a clear thesis and good technical grounding. "
+            "Tighten the introduction and add one concrete example to lift it "
+            "into the top tier for your selected audience."
+        ),
+        score_breakdown=[
+            ScoreDimension(name="Structure", score=82,
+                           rationale="Headings follow a logical hierarchy; intro could be tighter."),
+            ScoreDimension(name="Depth", score=75,
+                           rationale="Covers the main concepts but skips a key edge case."),
+            ScoreDimension(name="Clarity", score=80,
+                           rationale="Sentences are readable; a few passive constructions remain."),
+            ScoreDimension(name="Evidence", score=68,
+                           rationale="Examples are anecdotal — add a benchmark or citation."),
+            ScoreDimension(name="Engagement", score=84,
+                           rationale="Strong hook and a clear call-to-action at the close."),
+        ],
+        strengths=[
+            "Opening paragraph establishes the problem in under 50 words.",
+            "Code snippets are runnable and well-commented.",
+            "Closing CTA aligns with the stated purpose.",
+        ],
+        improvement_priorities=[
+            ImprovementItem(
+                priority="high",
+                title="Add quantitative evidence",
+                description="Replace the 'much faster' claim in section 2 with a measured benchmark.",
+            ),
+            ImprovementItem(
+                priority="medium",
+                title="Trim the introduction",
+                description="The first three paragraphs restate the title — collapse them into one.",
+            ),
+            ImprovementItem(
+                priority="low",
+                title="Normalize heading case",
+                description="Section 4 uses Title Case while others use Sentence case.",
+            ),
+        ],
+        line_edits=[
+            LineEdit(
+                before="This is something that has been on my mind for a while now.",
+                after="I've been thinking about this for months.",
+                rationale="Cuts 6 words and removes hedging.",
+            ),
+            LineEdit(
+                before="It is widely known that caching improves performance.",
+                after="Caching cut our p99 latency from 240ms to 38ms.",
+                rationale="Replaces a truism with concrete evidence.",
+            ),
+        ],
+        comparative_analysis=[
+            "Your introduction is 2.1× longer than top-performing posts in this category.",
+            f"At {word_count} words, the post sits below the 1,200-word median for "
+            f"{req.platform or 'this platform'}.",
+        ],
+        word_count=word_count,
+        mode="mock",
+    )
 
 
 # ---------- Routes ----------
@@ -84,17 +217,38 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-@app.post("/evaluate", response_model=EvaluationResponse)
-def evaluate(req: EvaluationRequest) -> EvaluationResponse:
-    prompt = build_prompt(req)
-    word_count = len(req.content.split())
-    preview = prompt if len(prompt) <= 500 else prompt[:500] + "..."
-    return EvaluationResponse(
-        status="received",
-        received=req,
-        word_count=word_count,
-        prompt_preview=preview,
-    )
+def _force_mock() -> bool:
+    return os.getenv("USE_MOCK_LLM", "").lower() in {"1", "true", "yes"}
+
+
+@app.post("/evaluate", response_model=EvaluationResult)
+def evaluate(req: EvaluationRequest) -> EvaluationResult:
+    snippets = _retrieve_context(req, k=6)
+    prompt = build_prompt(req, snippets)
+
+    # Bail out to the mock if the LLM isn't usable in this environment.
+    if _force_mock():
+        return _mock_result(req)
+    try:
+        import llm
+    except ImportError:
+        log.warning("llm module unavailable; returning mock")
+        return _mock_result(req)
+    if not llm.is_configured():
+        log.warning("GROQ_API_KEY not set; returning mock")
+        return _mock_result(req)
+
+    try:
+        raw = llm.evaluate(prompt)
+        raw.setdefault("word_count", len(req.content.split()))
+        raw["mode"] = "live"
+        return EvaluationResult.model_validate(raw)
+    except (ValidationError, ValueError) as exc:
+        log.exception("LLM returned malformed result: %s", exc)
+        return _mock_result(req)
+    except Exception as exc:
+        log.exception("LLM call failed: %s", exc)
+        return _mock_result(req)
 
 
 # ---------- Static frontend ----------

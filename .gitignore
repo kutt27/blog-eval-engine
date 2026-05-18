@@ -1,2 +1,6 @@
 valuation-engine.md
 .env
+.rag_cache.npz
+__pycache__/
+*.pyc
+engine/

@@ -57,6 +57,16 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Blog Type</label>
+                    <select id="blog-type" class="input-field">
+                        <option value="How-to">How-to</option>
+                        <option value="Case study">Case study</option>
+                        <option value="Opinion">Opinion</option>
+                        <option value="Comparison">Comparison</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label>Platform Destination</label>
                     <select id="platform" class="input-field">
                         <option value="Personal Blog">Personal Blog</option>
@@ -94,6 +104,46 @@
                 <div class="editor-container">
                     <textarea id="blog-editor" class="blog-editor"
                         placeholder="Paste your markdown content here..."></textarea>
+                </div>
+
+                <!-- Results Dashboard: Hidden by default -->
+                <div id="results-dashboard" class="results-dashboard" style="display: none;">
+                    <div class="results-header">
+                        <div>
+                            <h2 class="serif">Evaluation Report</h2>
+                            <p id="results-summary" class="results-summary"></p>
+                        </div>
+                        <div class="score-circle">
+                            <span id="overall-score">--</span>
+                            <small>/ 100</small>
+                        </div>
+                    </div>
+
+                    <div class="result-card breakdown-card">
+                        <h3><i data-lucide="bar-chart-3"></i> Score Breakdown</h3>
+                        <div id="score-breakdown-list"></div>
+                    </div>
+
+                    <div class="results-grid">
+                        <div class="result-card strengths-card">
+                            <h3><i data-lucide="check-circle"></i> Strengths</h3>
+                            <ul id="strengths-list"></ul>
+                        </div>
+                        <div class="result-card improvements-card">
+                            <h3><i data-lucide="alert-circle"></i> Improvement Priorities</h3>
+                            <ul id="improvements-list"></ul>
+                        </div>
+                    </div>
+
+                    <div class="result-card line-edits-card">
+                        <h3><i data-lucide="edit-3"></i> Specific Line Edits</h3>
+                        <div id="line-edits-list"></div>
+                    </div>
+
+                    <div class="result-card comparative-card">
+                        <h3><i data-lucide="trending-up"></i> Comparative Analysis</h3>
+                        <ul id="comparative-list"></ul>
+                    </div>
                 </div>
             </section>
         </main>
