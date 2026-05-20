@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Radley:ital@0;1&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
     --bg-color: #f4f1e8;
@@ -7,8 +7,7 @@
     --accent-color: #8b5cf6;
     --border-color: #d1cfc7;
     --card-bg: #ffffff;
-    --font-serif: 'Radley', serif;
-    --font-sans: 'Inter', sans-serif;
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -21,17 +20,9 @@
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
     line-height: 1.6;
     overflow-x: hidden;
-}
-
-h1,
-h2,
-h3,
-.serif {
-    font-family: var(--font-serif);
-    font-weight: 400;
 }
 
 .container {
@@ -41,21 +32,28 @@ h3,
     min-height: 100vh;
 }
 
+hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 1rem 0 0;
+}
+
 header {
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
     text-align: center;
+    padding: 1rem 0;
 }
 
 header h1 {
     font-size: 2.8rem;
-    letter-spacing: -0.01em;
+    font-weight: 600;
+    letter-spacing: -0.02em;
     margin-bottom: 0.5rem;
 }
 
 header p {
     color: #666;
-    font-style: italic;
-    font-family: var(--font-serif);
+    font-size: 1.05rem;
 }
 
 /* Main Layout */
@@ -63,7 +61,6 @@ header p {
     display: flex;
     gap: 2rem;
     align-items: stretch;
-    /* Ensures panels match height if needed, but we'll align tops */
 }
 
 .sidebar {
@@ -72,6 +69,7 @@ header p {
 
 .editor-section {
     flex: 1;
+    padding: 0.5rem 0;
 }
 
 @media (max-width: 1000px) {
@@ -92,6 +90,12 @@ header p {
     border-radius: 4px;
     padding: 2rem;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+}
+
+.panel .btn-evaluate {
+    margin-top: auto;
 }
 
 /* Form Styles */
@@ -101,9 +105,11 @@ header p {
 
 .form-group label {
     display: block;
-    font-family: var(--font-serif);
-    font-size: 1.1rem;
-    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.6rem;
     color: var(--primary-color);
 }
 
@@ -118,6 +124,8 @@ header p {
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 0.85rem;
+    font-family: var(--font-family);
+    font-weight: 500;
     cursor: pointer;
     transition: var(--transition);
     background: transparent;
@@ -139,24 +147,9 @@ header p {
     padding: 0.75rem;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
+    font-size: 0.9rem;
     background: #fafafa;
-}
-
-/* File Upload */
-.upload-container {
-    border: 2px dashed var(--border-color);
-    padding: 2rem;
-    text-align: center;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: var(--transition);
-    margin-bottom: 2rem;
-}
-
-.upload-container:hover {
-    border-color: var(--accent-color);
-    background: rgba(139, 92, 246, 0.02);
 }
 
 /* Editor Section */
@@ -166,7 +159,12 @@ header p {
     align-items: center;
     margin-bottom: 1rem;
     height: 32px;
-    /* Matching height for alignment */
+}
+
+.editor-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
 }
 
 .editor-container {
@@ -177,16 +175,18 @@ header p {
     display: flex;
     flex-direction: column;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    padding: 0.5rem;
 }
 
 .blog-editor {
     width: 100%;
     height: 100%;
-    padding: 3rem;
+    padding: 2rem;
     border: none;
     resize: none;
-    font-family: var(--font-serif);
-    font-size: 1.15rem;
+    font-family: var(--font-family);
+    font-size: 1rem;
+    font-weight: 400;
     line-height: 1.8;
     color: var(--text-color);
     outline: none;
@@ -194,31 +194,35 @@ header p {
 }
 
 .blog-editor::placeholder {
-    color: #ccc;
-    font-style: italic;
+    color: #bbb;
+    font-weight: 400;
 }
 
-/* Prose Content */
+/* Prose Content (rendered Markdown) */
 .prose h1 {
-    font-size: 2.2rem;
+    font-size: 2rem;
+    font-weight: 600;
     margin-bottom: 1.5rem;
     border-bottom: 1px solid #eee;
     padding-bottom: 0.5rem;
 }
 
 .prose h2 {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
+    font-weight: 600;
     margin: 2rem 0 1rem;
 }
 
 .prose h3 {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
+    font-weight: 600;
     margin: 1.5rem 0 0.8rem;
 }
 
 .prose p {
     margin-bottom: 1.5rem;
-    font-size: 1.15rem;
+    font-size: 1rem;
+    line-height: 1.8;
 }
 
 .prose pre {
@@ -227,7 +231,8 @@ header p {
     border-radius: 4px;
     margin: 1.5rem 0;
     overflow-x: auto;
-    font-family: monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.9rem;
 }
 
 .prose code {
@@ -235,6 +240,7 @@ header p {
     padding: 0.2rem 0.4rem;
     border-radius: 3px;
     font-size: 0.9em;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 /* Buttons */
@@ -245,8 +251,9 @@ header p {
     color: white;
     border: none;
     border-radius: 4px;
-    font-family: var(--font-serif);
-    font-size: 1.2rem;
+    font-family: var(--font-family);
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
     box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
@@ -280,12 +287,56 @@ header p {
     }
 }
 
+/* Loading Overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(244, 241, 232, 0.95);
+    z-index: 2000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+}
+
+.overlay .spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #ddd;
+    border-top-color: var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.overlay h2 {
+    margin-top: 2rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.overlay p {
+    margin-top: 0.5rem;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* Results Dashboard */
 .results-dashboard {
     margin-top: 2rem;
-    display: flex;
+    padding: 1rem 0.5rem;
+    display: none;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem;
 }
 
 .results-header {
@@ -301,22 +352,23 @@ header p {
 }
 
 .results-header h2 {
-    font-size: 2rem;
+    font-size: 1.8rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     margin-bottom: 0.25rem;
 }
 
 .results-summary {
     color: #555;
-    font-family: var(--font-serif);
-    font-style: italic;
     max-width: 60ch;
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 0.95rem;
 }
 
 .score-circle {
     flex: 0 0 auto;
-    width: 110px;
-    height: 110px;
+    width: 130px;
+    height: 130px;
     border-radius: 50%;
     background: var(--accent-color);
     color: white;
@@ -324,17 +376,19 @@ header p {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-family: var(--font-serif);
     box-shadow: 0 6px 20px rgba(139, 92, 246, 0.25);
 }
 
 .score-circle span {
-    font-size: 2.4rem;
+    font-size: 2.8rem;
+    font-weight: 700;
     line-height: 1;
+    letter-spacing: -0.02em;
 }
 
 .score-circle small {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
     opacity: 0.85;
     margin-top: 0.25rem;
 }
@@ -343,12 +397,13 @@ header p {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    padding: 1.5rem 1.75rem;
+    padding: 1.75rem;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
 }
 
 .result-card h3 {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
+    font-weight: 600;
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
@@ -371,6 +426,7 @@ header p {
     padding: 0.6rem 0;
     border-bottom: 1px solid #f0eee5;
     line-height: 1.5;
+    font-size: 0.95rem;
 }
 
 .result-card ul li:last-child {
@@ -412,12 +468,13 @@ header p {
 }
 
 .breakdown-name {
-    font-family: var(--font-serif);
-    font-size: 1.05rem;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 .breakdown-score {
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 0.9rem;
     color: var(--accent-color);
 }
 
@@ -435,10 +492,10 @@ header p {
 }
 
 .breakdown-rationale {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #666;
     margin-top: 0.4rem;
-    font-style: italic;
+    line-height: 1.5;
 }
 
 /* Improvements */
@@ -456,17 +513,17 @@ header p {
 
 .improvement p {
     color: #555;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     line-height: 1.5;
 }
 
 .priority-tag {
     text-transform: uppercase;
-    font-size: 0.7rem;
-    letter-spacing: 0.05em;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     padding: 0.15rem 0.5rem;
     border-radius: 3px;
-    font-weight: 600;
 }
 
 .priority-high .priority-tag {
@@ -513,7 +570,8 @@ header p {
 
 .line-edit-label {
     display: inline-block;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: #888;
@@ -524,5 +582,21 @@ header p {
     margin-top: 0.5rem;
     font-size: 0.85rem;
     color: #777;
-    font-style: italic;
+    line-height: 1.5;
+}
+
+/* File Upload */
+.upload-container {
+    border: 2px dashed var(--border-color);
+    padding: 2rem;
+    text-align: center;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 2rem;
+}
+
+.upload-container:hover {
+    border-color: var(--accent-color);
+    background: rgba(139, 92, 246, 0.02);
 }

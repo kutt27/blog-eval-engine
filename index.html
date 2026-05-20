@@ -16,15 +16,14 @@
     <div class="container">
         <header>
             <h1>Blog Evaluator</h1>
-            <p style="padding-bottom: 15px;">Refine your narrative with semantic evaluation.</p>
-            <hr />
+            <p>Refine your narrative with semantic evaluation.</p>
         </header>
 
         <main class="app-layout">
             <!-- Sidebar: Configuration -->
             <section class="panel sidebar">
                 <div class="editor-header">
-                    <h3 class="serif">Evaluation Config</h3>
+                    <h3>Evaluation Config</h3>
                 </div>
 
                 <div class="form-group">
@@ -96,11 +95,6 @@
 
             <!-- Main: Blog Editor -->
             <section class="editor-section">
-                <!-- <div class="editor-header">
-                    <h2 class="serif">Draft Your Content</h2>
-                    <span id="word-count" style="font-size: 0.9rem; color: #888;">0 words</span>
-                </div> -->
-                <!-- Closed for aesthetic purpose -->
                 <div class="editor-container">
                     <textarea id="blog-editor" class="blog-editor"
                         placeholder="Paste your markdown content here..."></textarea>
@@ -110,7 +104,7 @@
                 <div id="results-dashboard" class="results-dashboard" style="display: none;">
                     <div class="results-header">
                         <div>
-                            <h2 class="serif">Evaluation Report</h2>
+                            <h2>Evaluation Report</h2>
                             <p id="results-summary" class="results-summary"></p>
                         </div>
                         <div class="score-circle">
@@ -150,26 +144,11 @@
     </div>
 
     <!-- Loading Overlay -->
-    <div id="loading-overlay" class="overlay"
-        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(244, 241, 232, 0.95); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
-        <div
-            style="width: 60px; height: 60px; border: 4px solid #ddd; border-top: 4px solid #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite;">
-        </div>
-        <h2 class="serif" style="margin-top: 2rem;">Evaluating your content...</h2>
-        <p style="margin-top: 0.5rem; font-style: italic; color: #666;">Consulting Semantic RAG & LLM Engine</p>
+    <div id="loading-overlay" class="overlay" style="display: none;">
+        <div class="spinner"></div>
+        <h2>Evaluating your content...</h2>
+        <p>Consulting Semantic RAG and LLM Engine</p>
     </div>
-
-    <style>
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-    </style>
 
     <script src="app.js"></script>
     <script>

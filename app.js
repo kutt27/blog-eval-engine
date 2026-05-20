@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderLineEdits(data.line_edits || []);
         renderList('comparative-list', data.comparative_analysis || []);
 
-        dashboard.style.display = 'block';
+        dashboard.style.display = 'flex';
         dashboard.classList.add('fade-in');
         if (window.lucide) lucide.createIcons();
         dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
