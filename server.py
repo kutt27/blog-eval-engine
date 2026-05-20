@@ -82,6 +82,8 @@ class EvaluationResult(BaseModel):
     word_count: int = 0
     # Indicates whether the response came from the live LLM or the mock.
     mode: Literal["live", "mock"] = "live"
+    # Populated by the consistency check when score variance exceeds threshold.
+    confidence_warning: str | None = None
 
 
 # ---------- App setup ----------
@@ -98,10 +100,23 @@ app.add_middleware(
 
 # ---------- Prompt assembly (stub) ----------
 
-def _retrieve_context(req: EvaluationRequest, k: int = 6) -> List[dict]:
-    """Pull top-k rubric snippets via the local RAG store. Empty on failure."""
+def _depth_to_k(depth: str) -> int:
+    """Map evaluation depth to number of RAG snippets to retrieve."""
+    mapping = {"Quick": 3, "Standard": 6, "Deep Audit": 10}
+    return mapping.get(depth, 6)
+
+
+def _retrieve_context(req: EvaluationRequest) -> List[dict]:
+    """Pull top-k rubric snippets via the local RAG store. Empty on failure.
+
+    The number of snippets is determined by the ``depth`` field:
+    - Quick → 3
+    - Standard → 6
+    - Deep Audit → 10
+    """
     try:
         import rag
+        k = _depth_to_k(req.depth)
         query = rag.build_query(
             audience=req.audience,
             style=req.style,
@@ -116,8 +131,28 @@ def _retrieve_context(req: EvaluationRequest, k: int = 6) -> List[dict]:
         return []
 
 
+def _depth_to_items(depth: str) -> str:
+    """Return a human-readable item count directive for the LLM prompt."""
+    mapping = {
+        "Quick": "Generate exactly 3-5 items in every list. Limit line_edits to 1-2.",
+        "Standard": "Generate 6-10 items in every list. 3-5 line_edits expected.",
+        "Deep Audit": "Generate 10-15 items in every list. At least 5 line_edits expected. Be exhaustive.",
+    }
+    return mapping.get(depth, mapping["Standard"])
+
+
+def _compute_metrics(content: str) -> Optional[str]:
+    """Compute deterministic content metrics; return prompt block or empty."""
+    try:
+        from metrics import compute_metrics as _cm
+        return _cm(content).to_prompt_block()
+    except Exception as exc:
+        log.debug("Content metrics unavailable: %s", exc)
+        return None
+
+
 def build_prompt(req: EvaluationRequest, snippets: List[dict]) -> str:
-    """Assemble the user-turn prompt: config + retrieved rubrics + content."""
+    """Assemble the user-turn prompt: config + retrieved rubrics + content metrics + content."""
     lines: List[str] = ["## Evaluation configuration"]
     lines.append(f"- Target audience: {', '.join(req.audience) or 'unspecified'}")
     lines.append(f"- Writing style: {', '.join(req.style) or 'unspecified'}")
@@ -125,10 +160,16 @@ def build_prompt(req: EvaluationRequest, snippets: List[dict]) -> str:
     lines.append(f"- Blog type: {req.blog_type or 'unspecified'}")
     lines.append(f"- Platform: {req.platform or 'unspecified'}")
     lines.append(f"- Feedback depth: {req.depth}")
+    lines.append(f"- Item count directive: {_depth_to_items(req.depth)}")
     if req.custom:
         lines.append(f"- Custom focus: {req.custom}")
     if req.prompt_injection:
         lines.append(f"- Additional instructions: {req.prompt_injection}")
+
+    # Pre-computed metrics block (ground truth — LLM should not compute these)
+    metrics_block = _compute_metrics(req.content)
+    if metrics_block:
+        lines.append(f"\n{metrics_block}")
 
     if snippets:
         lines.append("\n## Reference rubrics (retrieved)")
@@ -217,13 +258,38 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+class FeedbackRequest(BaseModel):
+    """Payload for submitting user feedback on an evaluation."""
+    evaluation_id: int
+    feedback_type: Literal["correction", "rating", "flag"]
+    payload: dict = Field(default_factory=dict)
+    notes: str = ""
+
+
+@app.post("/feedback")
+def submit_feedback(fb: FeedbackRequest) -> dict:
+    """Store user correction/rating for a previous evaluation."""
+    try:
+        from feedback import store_feedback
+        fid = store_feedback(
+            evaluation_id=fb.evaluation_id,
+            feedback_type=fb.feedback_type,
+            payload=fb.payload,
+            notes=fb.notes or None,
+        )
+        return {"status": "ok", "feedback_id": fid}
+    except Exception as exc:
+        log.warning("Feedback storage failed: %s", exc)
+        return {"status": "error", "detail": str(exc)}
+
+
 def _force_mock() -> bool:
     return os.getenv("USE_MOCK_LLM", "").lower() in {"1", "true", "yes"}
 
 
 @app.post("/evaluate", response_model=EvaluationResult)
 def evaluate(req: EvaluationRequest) -> EvaluationResult:
-    snippets = _retrieve_context(req, k=6)
+    snippets = _retrieve_context(req)
     prompt = build_prompt(req, snippets)
 
     # Bail out to the mock if the LLM isn't usable in this environment.
@@ -238,11 +304,29 @@ def evaluate(req: EvaluationRequest) -> EvaluationResult:
         log.warning("GROQ_API_KEY not set; returning mock")
         return _mock_result(req)
 
+    import time
+    t0 = time.monotonic()
     try:
-        raw = llm.evaluate(prompt)
+        raw = llm.evaluate(prompt, depth=req.depth)
         raw.setdefault("word_count", len(req.content.split()))
         raw["mode"] = "live"
-        return EvaluationResult.model_validate(raw)
+        validated = EvaluationResult.model_validate(raw)
+        latency_ms = (time.monotonic() - t0) * 1000
+
+        # Persist to feedback loop (best-effort)
+        try:
+            from feedback import store_evaluation
+            store_evaluation(
+                config=req.model_dump(),
+                snippets=[{k: s.get(k) for k in ("source", "score")} for s in snippets],
+                result=raw,
+                latency_ms=latency_ms,
+                confidence="low" if raw.get("confidence_warning") else "ok",
+            )
+        except Exception:
+            pass
+
+        return validated
     except (ValidationError, ValueError) as exc:
         log.exception("LLM returned malformed result: %s", exc)
         return _mock_result(req)
@@ -261,5 +345,4 @@ app.mount("/", StaticFiles(directory=str(_ROOT), html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=True)

@@ -4,3 +4,5 @@ valuation-engine.md
 __pycache__/
 *.pyc
 engine/
+.pytest_cache/
+.evaluation_history.db
